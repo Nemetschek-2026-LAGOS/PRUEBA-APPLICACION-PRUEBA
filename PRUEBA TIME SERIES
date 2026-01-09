@@ -1,0 +1,78 @@
+Python 3.12.0 (tags/v3.12.0:0fb18b0, Oct  2 2023, 13:03:39) [MSC v.1935 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license()" for more information.
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import warnings
+
+warnings.filterwarnings("ignore")
+sns.set(style="whitegrid")
+
+# Load the dataset
+df = pd.read_csv("AirPassengers.csv")
+
+# Convert 'Month' to datetime and set as index
+df['Month'] = pd.to_datetime(df['Month'])
+df.set_index('Month', inplace=True)
+
+# Rename column for convenience
+df.columns = ['Passengers']
+
+# Plot the time series
+plt.figure(figsize=(12, 6))
+plt.plot(df, label='Monthly Air Passengers')
+plt.title('Monthly Number of Air Passengers')
+plt.xlabel('Date')
+plt.ylabel('Number of Passengers')
+plt.legend()
+plt.show()
+
+# Decompose the time series
+decomposition = seasonal_decompose(df['Passengers'], model='multiplicative')
+decomposition.plot()
+plt.show()
+
+# Check stationarity using Augmented Dickey-Fuller test
+adf_result = adfuller(df['Passengers'])
+... print("ADF Statistic:", adf_result[0])
+... print("p-value:", adf_result[1])
+... 
+... # Differencing if not stationary
+... df_diff = df['Passengers'].diff().dropna()
+... 
+... # Plot ACF and PACF to determine p and q
+... fig, axes = plt.subplots(1, 2, figsize=(16, 4))
+... plot_acf(df_diff, ax=axes[0])
+... plot_pacf(df_diff, ax=axes[1])
+... plt.show()
+... 
+... # Fit ARIMA model (example with p=2, d=1, q=2)
+... model = ARIMA(df['Passengers'], order=(2, 1, 2))
+... model_fit = model.fit()
+... 
+... # Summary of the model
+... print(model_fit.summary())
+... 
+... # Diagnostic plots
+... model_fit.plot_diagnostics(figsize=(12, 8))
+... plt.show()
+... 
+... # Forecast future values
+... forecast = model_fit.get_forecast(steps=12)
+... forecast_ci = forecast.conf_int()
+... 
+... # Plot forecast
+... plt.figure(figsize=(12, 6))
+... plt.plot(df.index, df['Passengers'], label='Observed')
+... plt.plot(forecast.predicted_mean.index, forecast.predicted_mean, label='Forecast')
+... plt.fill_between(forecast_ci.index, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='pink', alpha=0.3)
+... plt.title('Forecast of Air Passengers')
+... plt.xlabel('Date')
+... plt.ylabel('Number of Passengers')
+... plt.legend()
+... plt.show()
